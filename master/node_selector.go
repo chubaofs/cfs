@@ -136,7 +136,6 @@ func getAllCarryMetaNodes(maxTotal uint64, excludeHosts []string, metaNodes *syn
 		}
 		nt.Ptr = metaNode
 		nodes = append(nodes, nt)
-
 		return true
 	})
 
@@ -212,7 +211,7 @@ func getAvailHosts(nodes *sync.Map, excludeHosts []string, replicaNum int, selec
 		peer := proto.Peer{ID: node.GetID(), Addr: node.GetAddr()}
 		peers = append(peers, peer)
 	}
-
+	log.LogInfof("action[getAvailHosts] peers[%v]", peers)
 	if newHosts, err = reshuffleHosts(orderHosts); err != nil {
 		err = fmt.Errorf("action[getAvailHosts] err:%v  orderHosts is nil", err.Error())
 		return

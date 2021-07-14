@@ -137,7 +137,7 @@ func (w *Wrapper) getSimpleVolView() (err error) {
 }
 
 func (w *Wrapper) update() {
-	ticker := time.NewTicker(time.Minute)
+	ticker := time.NewTicker(5*time.Second)
 	for {
 		select {
 		case <-ticker.C:
@@ -152,7 +152,6 @@ func (w *Wrapper) update() {
 
 func (w *Wrapper) updateSimpleVolView() (err error) {
 	var view *proto.SimpleVolView
-
 	if view, err = w.mc.AdminAPI().GetVolumeSimpleInfo(w.volName); err != nil {
 		log.LogWarnf("updateSimpleVolView: get volume simple info fail: volume(%v) err(%v)", w.volName, err)
 		return

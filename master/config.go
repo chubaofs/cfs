@@ -38,6 +38,9 @@ const (
 	cfgMetaNodeReservedMem              = "metaNodeReservedMem"
 	heartbeatPortKey                    = "heartbeatPort"
 	replicaPortKey                      = "replicaPort"
+	faultDomain                         = "faultDomain"
+	cfgDomainBatchGrpCnt                = "faultDomainGrpBatchCnt"
+	cfgDomainBuildAsPossible            = "faultDomainBuildAsPossible"
 )
 
 //default value
@@ -45,12 +48,13 @@ const (
 	defaultTobeFreedDataPartitionCount         = 1000
 	defaultSecondsToFreeDataPartitionAfterLoad = 5 * 60 // a data partition can only be freed after loading 5 mins
 	defaultIntervalToFreeDataPartition         = 10     // in terms of seconds
-	defaultIntervalToCheckHeartbeat            = 60
-	defaultIntervalToCheckDataPartition        = 60
-	defaultIntervalToCheckCrc                  = 20 * defaultIntervalToCheckHeartbeat // in terms of seconds
+	defaultIntervalToCheck                     = 60
+	defaultIntervalToCheckHeartbeat            = 6
+	defaultIntervalToCheckDataPartition        = 5
+	defaultIntervalToCheckCrc                  = 20 * defaultIntervalToCheck // in terms of seconds
 	noHeartBeatTimes                           = 3                                    // number of times that no heartbeat reported
 	defaultNodeTimeOutSec                      = noHeartBeatTimes * defaultIntervalToCheckHeartbeat
-	defaultDataPartitionTimeOutSec             = 10 * defaultIntervalToCheckHeartbeat
+	defaultDataPartitionTimeOutSec             = 5 * defaultIntervalToCheckHeartbeat
 	defaultMissingDataPartitionInterval        = 24 * 3600
 
 	defaultIntervalToAlarmMissingDataPartition = 60 * 60
@@ -62,9 +66,12 @@ const (
 
 	defaultIntervalToAlarmMissingMetaPartition         = 10 * 60 // interval of checking if a replica is missing
 	defaultMetaPartitionMemUsageThreshold      float32 = 0.75    // memory usage threshold on a meta partition
+	defaultZoneUsageThreshold                  float64 = 0.90    // storage usage threshold on a data partition
+	defaultDomainUsageThreshold                float64 = 0.75    // storage usage threshold on a data partition
 	defaultMaxMetaPartitionCountOnEachNode             = 10000
 	defaultReplicaNum                                  = 3
 	defaultDiffSpaceUsage                              = 1024 * 1024 * 1024
+	defaultNodeSetGrpStep                              = 1
 )
 
 // AddrDatabase is a map that stores the address of a given host (e.g., the leader)
@@ -92,6 +99,10 @@ type clusterConfig struct {
 	heartbeatPort                       int64
 	replicaPort                         int64
 	diffSpaceUsage                      uint64
+	faultDomain                         bool
+	DomainNodeGrpBatchCnt               int
+	DomainBuildAsPossible               bool
+	DataPartitionUsageThreshold         float64
 }
 
 func newClusterConfig() (cfg *clusterConfig) {

@@ -81,6 +81,7 @@ var (
 	ErrInvalidAccessKey                = errors.New("invalid access key")
 	ErrInvalidSecretKey                = errors.New("invalid secret key")
 	ErrIsOwner                         = errors.New("user owns the volume")
+	ErrZoneNum                         = errors.New("zone num not qualified")
 )
 
 // http response error code and error message definitions
@@ -144,6 +145,7 @@ const (
 	ErrCodeInvalidAccessKey
 	ErrCodeInvalidSecretKey
 	ErrCodeIsOwner
+	ErrCodeZoneNumError
 )
 
 // Err2CodeMap error map to code
@@ -205,6 +207,7 @@ var Err2CodeMap = map[error]int32{
 	ErrInvalidAccessKey:                ErrCodeInvalidAccessKey,
 	ErrInvalidSecretKey:                ErrCodeInvalidSecretKey,
 	ErrIsOwner:                         ErrCodeIsOwner,
+	ErrZoneNum:							ErrCodeZoneNumError,
 }
 
 func ParseErrorCode(code int32) error {
@@ -273,6 +276,7 @@ var code2ErrMap = map[int32]error{
 	ErrCodeInvalidAccessKey:                ErrInvalidAccessKey,
 	ErrCodeInvalidSecretKey:                ErrInvalidSecretKey,
 	ErrCodeIsOwner:                         ErrIsOwner,
+	ErrCodeZoneNumError:					ErrZoneNum,
 }
 
 type GeneralResp struct {

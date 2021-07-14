@@ -102,7 +102,6 @@ func (c *Cluster) decommissionMetaPartition(nodeAddr string, mp *MetaPartition) 
 		excludeNodeSets []uint64
 		oldHosts        []string
 		zones           []string
-		excludeZone     string
 	)
 	log.LogWarnf("action[decommissionMetaPartition],volName[%v],nodeAddr[%v],partitionID[%v] begin", mp.volName, nodeAddr, mp.PartitionID)
 	mp.RLock()
@@ -125,14 +124,25 @@ func (c *Cluster) decommissionMetaPartition(nodeAddr string, mp *MetaPartition) 
 		goto errHandler
 	}
 	if _, newPeers, err = ns.getAvailMetaNodeHosts(oldHosts, 1); err != nil {
+		if _, ok := c.vols[mp.volName]; !ok {
+			log.LogWarnf("clusterID[%v] partitionID:%v  on Node:[%v]",
+				c.Name, mp.PartitionID, mp.Hosts)
+			return
+		}
+		if c.isFaultDomain(c.vols[mp.volName]) {
+			log.LogWarnf("clusterID[%v] partitionID:%v  on Node:[%v]",
+				c.Name, mp.PartitionID, mp.Hosts)
+			return
+		}
 		// choose a meta node in other node set in the same zone
 		excludeNodeSets = append(excludeNodeSets, ns.ID)
 		if _, newPeers, err = zone.getAvailMetaNodeHosts(excludeNodeSets, oldHosts, 1); err != nil {
 			zones = mp.getLiveZones(nodeAddr)
+			var excludeZone []string
 			if len(zones) == 0 {
-				excludeZone = zone.name
+				excludeZone = append(excludeZone, zone.name)
 			} else {
-				excludeZone = zones[0]
+				excludeZone = append(excludeZone, zones[0])
 			}
 			// choose a meta node in other zone
 			if _, newPeers, err = c.chooseTargetMetaHosts(excludeZone, excludeNodeSets, oldHosts, 1, false, ""); err != nil {
@@ -857,11 +867,10 @@ func (c *Cluster) handleDataNodeHeartbeatResp(nodeAddr string, resp *proto.DataN
 		oldZoneName := dataNode.ZoneName
 		dataNode.ZoneName = resp.ZoneName
 		c.adjustDataNode(dataNode)
-		log.LogWarnf("dataNode zone changed from [%v] to [%v]", oldZoneName, resp.ZoneName)
+		log.LogWarnf("dataNode [%v] zone changed from [%v] to [%v]", dataNode.Addr, oldZoneName, resp.ZoneName)
 	}
 
 	dataNode.updateNodeMetric(resp)
-
 	if err = c.t.putDataNode(dataNode); err != nil {
 		log.LogErrorf("action[handleDataNodeHeartbeatResp] dataNode[%v],zone[%v],node set[%v], err[%v]", dataNode.Addr, dataNode.ZoneName, dataNode.NodeSetID, err)
 	}

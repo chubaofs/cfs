@@ -96,8 +96,36 @@ func (m *Server) loadMetadata() {
 	if err = m.cluster.loadClusterValue(); err != nil {
 		panic(err)
 	}
+
+	if m.cluster.FaultDomain {
+		if err = m.cluster.loadNodeSetGrps(); err != nil {
+			panic(err)
+		}
+	}
+	var loadDomain bool
+	if m.cluster.FaultDomain { // try load exclude
+		if loadDomain,err = m.cluster.loadZoneDomain(); err != nil {
+			log.LogInfof("action[putZoneDomain] err[%v]", err)
+			panic(err)
+		}
+		if loadDomain { // if load success,start grp manager ,load nodeset can trigger build ns grps
+			m.cluster.nodeSetGrpManager.start()
+		}
+	}
+
 	if err = m.cluster.loadNodeSets(); err != nil {
 		panic(err)
+	}
+
+	if m.cluster.FaultDomain {
+		log.LogInfof("action[FaultDomain] set")
+		if !loadDomain { //first restart after domain item be added
+			if err = m.cluster.putZoneDomain(true); err != nil {
+				log.LogInfof("action[putZoneDomain] err[%v]", err)
+				panic(err)
+			}
+		}
+		m.cluster.nodeSetGrpManager.start()
 	}
 
 	if err = m.cluster.loadDataNodes(); err != nil {

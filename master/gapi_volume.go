@@ -175,8 +175,7 @@ func (s *VolumeService) volPermission(ctx context.Context, args struct {
 func (s *VolumeService) createVolume(ctx context.Context, args struct {
 	Name, Owner, ZoneName, Description                 string
 	Capacity, DataPartitionSize, MpCount, DpReplicaNum uint64
-	FollowerRead, Authenticate, CrossZone		   bool
-}) (*Vol, error) {
+	FollowerRead, Authenticate, CrossZone, DefaultPriority bool}) (*Vol, error) {
 	uid, per, err := permissions(ctx, ADMIN|USER)
 	if err != nil {
 		return nil, err
@@ -190,7 +189,9 @@ func (s *VolumeService) createVolume(ctx context.Context, args struct {
 		return nil, fmt.Errorf("[%s] not has permission to create volume for [%s]", uid, args.Owner)
 	}
 
-	vol, err := s.cluster.createVol(args.Name, args.Owner, args.ZoneName, args.Description, int(args.MpCount), int(args.DpReplicaNum), int(args.DataPartitionSize), int(args.Capacity), args.FollowerRead, args.Authenticate, args.CrossZone)
+	vol, err := s.cluster.createVol(args.Name, args.Owner, args.ZoneName, args.Description, int(args.MpCount),
+						int(args.DpReplicaNum), int(args.DataPartitionSize), int(args.Capacity),
+						args.FollowerRead, args.Authenticate, args.CrossZone, args.DefaultPriority)
 	if err != nil {
 		return nil, err
 	}

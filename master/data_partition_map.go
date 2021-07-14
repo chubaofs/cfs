@@ -33,6 +33,7 @@ type DataPartitionMap struct {
 	lastReleasedIndex      uint64 // last released partition index
 	partitions             []*DataPartition
 	responseCache          []byte
+	lastAutoCreateTime     time.Time
 	volName                string
 }
 

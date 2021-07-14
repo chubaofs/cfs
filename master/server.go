@@ -158,6 +158,7 @@ func (m *Server) checkConfig(cfg *config.Config) (err error) {
 	if m.id, err = strconv.ParseUint(cfg.GetString(ID), 10, 64); err != nil {
 		return fmt.Errorf("%v,err:%v", proto.ErrInvalidCfg, err.Error())
 	}
+	m.config.faultDomain = cfg.GetBoolWithDefault(faultDomain, false)
 	m.config.heartbeatPort = cfg.GetInt64(heartbeatPortKey)
 	m.config.replicaPort = cfg.GetInt64(replicaPortKey)
 	if m.config.heartbeatPort <= 1024 {
@@ -178,6 +179,15 @@ func (m *Server) checkConfig(cfg *config.Config) (err error) {
 	}
 	if m.config.nodeSetCapacity < 3 {
 		m.config.nodeSetCapacity = defaultNodeSetCapacity
+	}
+
+	m.config.DomainBuildAsPossible = cfg.GetBoolWithDefault(cfgDomainBuildAsPossible, false)
+	m.config.DomainNodeGrpBatchCnt = defaultNodeSetGrpBatchCnt
+	domainBatchGrpCnt := cfg.GetString(cfgDomainBatchGrpCnt)
+	if domainBatchGrpCnt != "" {
+		if m.config.DomainNodeGrpBatchCnt, err = strconv.Atoi(domainBatchGrpCnt); err != nil {
+			return fmt.Errorf("%v,err:%v", proto.ErrInvalidCfg, err.Error())
+		}
 	}
 
 	metaNodeReservedMemory := cfg.GetString(cfgMetaNodeReservedMem)

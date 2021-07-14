@@ -72,6 +72,7 @@ const (
 	CliFlagDelBatchCount      = "delete-batch-count"
 	CliFlagDelWorkerSleepMs   = "delete-worker-sleep-ms"
 	CliFlagMarkDelRate        = "mark-delete-rate"
+	CliFlagCrossZone          = "crossZone"
 
 	//CliFlagSetDataPartitionCount	= "count" use dp-count instead
 

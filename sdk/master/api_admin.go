@@ -246,7 +246,7 @@ func (api *AdminAPI) VolExpand(volName string, capacity uint64, authKey string) 
 }
 
 func (api *AdminAPI) CreateVolume(volName, owner string, mpCount int,
-	dpSize uint64, capacity uint64, replicas int, followerRead bool, zoneName string) (err error) {
+	dpSize uint64, capacity uint64, replicas int, followerRead bool, zoneName string, crossZone bool) (err error) {
 	var request = newAPIRequest(http.MethodGet, proto.AdminCreateVol)
 	request.addParam("name", volName)
 	request.addParam("owner", owner)
@@ -255,6 +255,7 @@ func (api *AdminAPI) CreateVolume(volName, owner string, mpCount int,
 	request.addParam("capacity", strconv.FormatUint(capacity, 10))
 	request.addParam("followerRead", strconv.FormatBool(followerRead))
 	request.addParam("zoneName", zoneName)
+	request.addParam("crossZone", strconv.FormatBool(crossZone))
 	if _, err = api.mc.serveRequest(request); err != nil {
 		return
 	}

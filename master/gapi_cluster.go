@@ -436,7 +436,7 @@ func (m *ClusterService) addMetaNode(ctx context.Context, args struct {
 	NodeAddr string
 	ZoneName string
 }) (uint64, error) {
-	if id, err := m.cluster.addMetaNode(args.NodeAddr, args.ZoneName); err != nil {
+	if id, err := m.cluster.addMetaNode(args.NodeAddr, args.ZoneName, 0); err != nil {
 		return 0, err
 	} else {
 		return id, nil

@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/chubaofs/chubaofs/proto"
 	"github.com/chubaofs/chubaofs/util"
@@ -53,6 +54,8 @@ type Vol struct {
 	FollowerRead       bool
 	authenticate       bool
 	crossZone          bool
+	domainOn           bool
+	defaultPriority    bool // old default zone first
 	zoneName           string
 	MetaPartitions     map[uint64]*MetaPartition `graphql:"-"`
 	mpsLock            sync.RWMutex
@@ -68,7 +71,11 @@ type Vol struct {
 	sync.RWMutex
 }
 
-func newVol(id uint64, name, owner, zoneName string, dpSize, capacity uint64, dpReplicaNum, mpReplicaNum uint8, followerRead, authenticate, crossZone bool, createTime int64, description string) (vol *Vol) {
+func newVol(id uint64, name, owner, zoneName string,
+			dpSize, capacity uint64, dpReplicaNum,
+			mpReplicaNum uint8, followerRead, authenticate,
+			crossZone bool, defaultPriority bool,
+			createTime int64, description string) (vol *Vol) {
 	vol = &Vol{ID: id, Name: name, MetaPartitions: make(map[uint64]*MetaPartition, 0)}
 	vol.dataPartitions = newDataPartitionMap(name)
 	if dpReplicaNum < defaultReplicaNum {
@@ -97,6 +104,7 @@ func newVol(id uint64, name, owner, zoneName string, dpSize, capacity uint64, dp
 	vol.mpsCache = make([]byte, 0)
 	vol.createTime = createTime
 	vol.description = description
+	vol.defaultPriority = defaultPriority
 	return
 }
 
@@ -113,6 +121,7 @@ func newVolFromVolValue(vv *volValue) (vol *Vol) {
 		vv.FollowerRead,
 		vv.Authenticate,
 		vv.CrossZone,
+		vv.DefaultPriority,
 		vv.CreateTime,
 		vv.Description)
 	// overwrite oss secure
@@ -399,7 +408,17 @@ func (vol *Vol) checkAutoDataPartitionCreation(c *Cluster) {
 }
 
 func (vol *Vol) autoCreateDataPartitions(c *Cluster) {
+	if vol.dataPartitions.lastAutoCreateTime.IsZero() ||
+			vol.dataPartitions.lastAutoCreateTime.After(time.Now()) {
+		vol.dataPartitions.lastAutoCreateTime = time.Now()
+		return
+	}
+	if time.Since(vol.dataPartitions.lastAutoCreateTime) < time.Minute {
+		return
+	}
+
 	if (vol.Capacity > 200000 && vol.dataPartitions.readableAndWritableCnt < 200) || vol.dataPartitions.readableAndWritableCnt < minNumOfRWDataPartitions {
+		vol.dataPartitions.lastAutoCreateTime = time.Now()
 		count := vol.calculateExpansionNum()
 		log.LogInfof("action[autoCreateDataPartitions] vol[%v] count[%v]", vol.Name, count)
 		c.batchCreateDataPartition(vol, count)
@@ -443,6 +462,7 @@ func (vol *Vol) updateViewCache(c *Cluster) {
 	vol.setMpsCache(mpsBody)
 	dpResps := vol.dataPartitions.getDataPartitionsView(0)
 	view.DataPartitions = dpResps
+	view.DomainOn = vol.domainOn
 	viewReply := newSuccessHTTPReply(view)
 	body, err := json.Marshal(viewReply)
 	if err != nil {
@@ -718,9 +738,17 @@ func (vol *Vol) doCreateMetaPartition(c *Cluster, start, end uint64) (mp *MetaPa
 		wg          sync.WaitGroup
 	)
 	errChannel := make(chan error, vol.mpReplicaNum)
-	if hosts, peers, err = c.chooseTargetMetaHosts("", nil, nil, int(vol.mpReplicaNum), vol.crossZone, vol.zoneName); err != nil {
-		log.LogErrorf("action[doCreateMetaPartition] chooseTargetMetaHosts err[%v]", err)
-		return nil, errors.NewError(err)
+	if c.isFaultDomain(vol) {
+		if hosts, peers, err  = c.getAvaliableHostFromNsGrp(TypeMetaPartion, vol.mpReplicaNum); err != nil {
+			log.LogErrorf("action[doCreateMetaPartition] getAvaliableHostFromNsGrp err[%v]", err)
+			return nil, errors.NewError(err)
+		}
+	} else {
+		var excludeZone []string
+		if hosts, peers, err = c.chooseTargetMetaHosts(excludeZone, nil, nil, int(vol.mpReplicaNum), vol.crossZone, vol.zoneName); err != nil {
+			log.LogErrorf("action[doCreateMetaPartition] chooseTargetMetaHosts err[%v]", err)
+			return nil, errors.NewError(err)
+		}
 	}
 	log.LogInfof("target meta hosts:%v,peers:%v", hosts, peers)
 	if partitionID, err = c.idAlloc.allocateMetaPartitionID(); err != nil {
